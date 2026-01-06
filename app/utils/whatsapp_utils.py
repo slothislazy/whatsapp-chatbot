@@ -1082,7 +1082,7 @@ def _apply_contact_policy(
     needs_classification = False
     if created or contact.get("category") == DEFAULT_UNKNOWN_CATEGORY:
         needs_classification = True
-    elif contact.get("allow_bot", True) and src not in {"llm_router", "dashboard_toggle", "handoff_detect"}:
+    elif contact.get("allow_bot", True) and src not in {"llm_router", "dashboard_toggle", "handoff_detect", "manual_outbound"}:
         needs_classification = True
 
     if not contact.get("allow_bot", True) and not needs_classification:

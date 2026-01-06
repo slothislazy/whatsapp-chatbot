@@ -957,6 +957,7 @@ def pause_thread_for_manual_message(
     try:
         upsert_contact(
             wa_id,
+            category="other",
             allow_bot=False,
             source="manual_outbound",
             routing_reason=pause_reason,
