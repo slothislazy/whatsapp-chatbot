@@ -1,0 +1,8 @@
+*.tmp
+*.pyc
+*.json
+*.pt
+vault.txt
+threads_db
+/waha/sessions/
+*.env

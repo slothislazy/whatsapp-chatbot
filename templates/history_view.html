@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhatsApp Chat History</title>
+  <link rel="stylesheet"  type="text/css" href="{{ url_for('static', filename='css/history.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <script src="{{ url_for('static', filename='js/history.js') }}"></script>
+  
+</head>
+<body>
+  <body>
+  <div
+    class="layout"
+    data-history-mode="dashboard"
+    data-feed-url="{% if selected_wa_id %}{{ url_for('conversation_history.history_feed', wa_id=selected_wa_id) }}{% else %}{% endif %}"
+    data-poll-interval-ms="5000"
+  >
+    <aside class="sidebar">
+      <header>
+        <h1>WhatsApp Threads</h1>
+        <div class="meta">
+          {% if contacts %}
+            {{ contacts|length }} saved conversation{% if contacts|length != 1 %}s{% endif %}
+          {% else %}
+            No conversations yet
+          {% endif %}
+        </div>
+      </header>
+      <div class="contact-list">
+        {% if contacts %}
+          <ul>
+            {% for contact in contacts %}
+              <li class="contact {% if contact.wa_id == selected_wa_id %}active{% endif %}">
+                <a href="{{ url_for('conversation_history.history_index', wa_id=contact.wa_id) }}">
+                  <div class="contact-waid">{{ contact.wa_id }}</div>
+                  {% if contact.ai_paused %}
+                    <div class="contact-status paused">Paused for human handoff</div>
+                  {% endif %}
+                  {% if contact.last_text %}
+                    <div class="contact-snippet">
+                      {{ (contact.last_role or "message") }} - {{ contact.last_text }}
+                    </div>
+                  {% endif %}
+                </a>
+                <form class="category-form" method="post" action="{{ url_for('conversation_history.update_category') }}">
+                  <input type="hidden" name="wa_id" value="{{ contact.wa_id }}">
+                  <button type="submit" name="category" value="lead">Lead</button>
+                  <button type="submit" name="category" value="vendor">Vendor</button>
+                  <button type="submit" name="category" value="academic">Academic</button>
+                  <button type="submit" name="category" value="other">Other</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="empty-state" style="margin: 3rem 1.5rem; text-align: left;">
+            Conversation history is empty.
+          </div>
+        {% endif %}
+      </div>
+      <div class="contact-store">
+        <div
+          class="contact-store__grabber"
+          data-contact-store-resizer
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize contacts.json panel"
+          tabindex="0"
+        >
+          <span class="grabber-bar"></span>
+        </div>
+        <div class="contact-store__header">
+          <div>
+            <div class="label">contacts.json</div>
+            <div class="meta">
+              {% if contact_store_records %}
+                {{ contact_store_records|length }} record{% if contact_store_records|length != 1 %}s{% endif %}
+              {% else %}
+                No stored contacts yet
+              {% endif %}
+            </div>
+          </div>
+          <div class="file-path" title="{{ contact_store_path }}">{{ contact_store_path }}</div>
+        </div>
+        {% if contact_store_records %}
+          <div class="contact-store__list">
+            {% for record in contact_store_records %}
+              <div class="contact-store__row">
+                <div class="row-main">
+                  <a class="phone phone-link" href="{{ url_for('conversation_history.history_index', wa_id=record.get('phone', '')) }}">
+                    {{ record.get("phone", "") }}
+                  </a>
+                  <div class="badges">
+                    <span class="badge">{{ record.get("category", "unknown") }}</span>
+                    <span class="badge {% if record.get('allow_bot') %}on{% else %}off{% endif %}">
+                      Bot {% if record.get("allow_bot") %}on{% else %}off{% endif %}
+                    </span>
+                  </div>
+                </div>
+                <form class="contact-store-form" method="post" action="{{ url_for('conversation_history.update_category') }}">
+                  <input type="hidden" name="wa_id" value="{{ record.get('phone', '') }}">
+                  <button type="submit" name="category" value="lead">Lead</button>
+                  <button type="submit" name="category" value="vendor">Vendor</button>
+                  <button type="submit" name="category" value="academic">Academic</button>
+                  <button type="submit" name="category" value="other">Other</button>
+                </form>
+                <div class="meta-row">
+                  {% if record.get("source") %}
+                    <span class="meta-chip">Source: {{ record.get("source") }}</span>
+                  {% endif %}
+                  {% if record.get("updated_at") %}
+                    <span class="meta-chip">Updated {{ record.get("updated_at") }}</span>
+                  {% endif %}
+                </div>
+                {% if record.get("routing_reason") %}
+                  <div class="contact-reason">
+                    Reason: {{ record.get("routing_reason") }}
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state" style="margin: 1.25rem 1rem; text-align: left; color: rgba(255,255,255,0.7);">
+            contacts.json is empty.
+          </div>
+        {% endif %}
+      </div>
+    </aside>
+    <div class="sidebar-resizer" data-sidebar-resizer role="separator" aria-orientation="vertical" tabindex="0"></div>
+    <main class="chat-panel">
+      {% if not selected_wa_id %}
+        <div class="empty-state">
+          Select a WhatsApp number to view the conversation.
+        </div>
+      {% else %}
+        <header class="chat-header">
+          <div>
+            <h2>{{ selected_wa_id }}</h2>
+            <div class="sub">
+              {{ selected_messages|length }} message{% if selected_messages|length != 1 %}s{% endif %}
+            </div>
+          </div>
+          <div class="controls">
+            {% if selected_contact %}
+              {% if selected_contact.ai_paused %}
+                <span class="status-chip paused">Awaiting human support</span>
+                {% if selected_contact.handoff_reason or selected_contact.handoff_ts %}
+                  <div class="status-meta">
+                    {% if selected_contact.handoff_reason %}
+                      {{ selected_contact.handoff_reason }}
+                    {% endif %}
+                    {% if selected_contact.handoff_reason and selected_contact.handoff_ts %}
+                      | 
+                    {% endif %}
+                    {% if selected_contact.handoff_ts %}
+                      Flagged {{ selected_contact.handoff_ts }}
+                    {% endif %}
+                  </div>
+                {% endif %}
+                <form method="post" action="{{ url_for('conversation_history.toggle_ai') }}" class="toggle-form">
+                  <input type="hidden" name="wa_id" value="{{ selected_contact.wa_id }}">
+                  <input type="hidden" name="action" value="resume">
+                  <button type="submit" class="toggle-button resume">Resume automated replies</button>
+                </form>
+              {% else %}
+                <span class="status-chip active">Automation active</span>
+                <form method="post" action="{{ url_for('conversation_history.toggle_ai') }}" class="toggle-form">
+                  <input type="hidden" name="wa_id" value="{{ selected_contact.wa_id }}">
+                  <input type="hidden" name="action" value="pause">
+                  <input type="hidden" name="reason" value="Paused from dashboard">
+                  <button type="submit" class="toggle-button pause">Pause automated replies</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </div>
+        </header>
+        <section class="chat-window">
+          {% for message in selected_messages %}
+            {% set role = (message.get("role") or "unknown").lower() %}
+            {% set bubble_class = "system" %}
+            {% set row_class = "system" %}
+            {% if role == "assistant" %}
+              {% set bubble_class = "assistant" %}
+              {% set row_class = "assistant" %}
+            {% elif role == "user" %}
+              {% set bubble_class = "user" %}
+              {% set row_class = "user" %}
+            {% elif role == "operator" %}
+              {% set bubble_class = "operator" %}
+              {% set row_class = "operator" %}
+            {% endif %}
+            <div class="bubble-row {{ row_class }}">
+              <div class="bubble {{ bubble_class }}{% if not message.get('ai_readable', True) %} muted{% endif %}">
+                <div class="role-chip">{{ message.get("role", "Unknown") }}</div>
+                <div class="bubble-content">{{ message.get("content", "") | replace("\n", "<br>") | safe }}</div>
+                {% if not message.get("ai_readable", True) %}
+                  <div class="meta-tag">Not forwarded to AI</div>
+                {% endif %}
+                {% if message.get("timestamp") %}
+                  <div class="timestamp">{{ message.get("timestamp") }}</div>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="empty-state" style="padding: 2rem 0;">
+              No messages stored for this number yet.
+            </div>
+          {% endfor %}
+        </section>
+        <form method="post" action="{{ url_for('conversation_history.send_manual_message') }}" class="composer">
+          <input type="hidden" name="wa_id" value="{{ selected_wa_id }}">
+          <label for="manual-message">Send a manual reply</label>
+          <textarea id="manual-message" name="message" placeholder="Type your reply to {{ selected_wa_id }}..." required></textarea>
+          <button type="submit">Send message</button>
+        </form>
+      {% endif %}
+    </main>
+  </div>
+</body>
+</html>

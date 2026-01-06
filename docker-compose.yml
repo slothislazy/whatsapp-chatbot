@@ -1,0 +1,36 @@
+services:
+  whatsapp-app:
+    build: .
+    container_name: whatsapp-app
+    restart: unless-stopped
+    environment:
+      - WAHA_BASE_URL=http://waha:3000
+      - WAHA_SESSION=default
+      - WAHA_API_KEY=aad3655bb09640ceadba509408f2ef04
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - LOG_LEVEL=DEBUG
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - waha
+    volumes:
+      - ./.cache:/app/.cache
+      - ./threads_db_store:/app/threads_db_store
+    ports:
+      - "8000:8000"
+      
+  waha:
+    container_name: waha
+    restart: unless-stopped
+    image: devlikeapro/waha
+    env_file:
+      - ./waha/.env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./waha/sessions:/app/sessions
+    environment:
+      - WAHA_SESSION_CONFIG_IGNORE_STATUS=true
+      - WAHA_SESSION_CONFIG_IGNORE_GROUPS=true
+      - WAHA_SESSION_CONFIG_IGNORE_CHANNELS=true
+      - WAHA_SESSION_CONFIG_IGNORE_BROADCAST=true
