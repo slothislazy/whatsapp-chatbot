@@ -1153,7 +1153,7 @@ def process_whatsapp_message(body):
         target_wa_id = normalize_wa_id(target_raw)
         target_chat_id = normalize_chat_id(target_raw or chat_id)
         logging.info(
-            "Detected manual outbound message from %s; pausing bot for %s.",
+            "Detected manual outbound message from %s to %s.",
             wa_id or chat_id,
             target_wa_id or target_chat_id,
         )

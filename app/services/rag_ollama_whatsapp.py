@@ -955,6 +955,13 @@ def pause_thread_for_manual_message(
     _ = timestamp
     pause_reason = reason or "manual_outbound_message"
     try:
+        contact = get_contact(wa_id)
+    except Exception:
+        contact = None
+    if contact and not contact.get("allow_bot", True):
+        logging.info("Skipping manual pause for %s because allow_bot is already false.", wa_id)
+        return
+    try:
         upsert_contact(
             wa_id,
             category="other",
